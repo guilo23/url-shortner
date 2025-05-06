@@ -1,49 +1,32 @@
 const express = require('express');
 const path = require('path');
-const shortid = require('shortid');
-const { initRepository, getRepository } = require('./models/shortUrl');
+const routes = require('./routes/url-router'); 
+const { initRepository } = require('./models/shortUrl');
 
 const app = express();
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+
 app.use(express.urlencoded({ extended: false }));
 
-initRepository().then(() => {
-  console.log('Repositório Redis inicializado com sucesso.');
+async function startServer() {
+  try {
+    await initRepository();
+    console.log('Repositório Redis inicializado com sucesso.');
 
-  // Rotas só são registradas depois da inicialização
-  app.get('/', async (req, res) => {
-    const repo = getRepository();
-    const entities = await repo.search().return.all();
-    const shortUrls = entities.map(e => e.toJSON());
-    res.render('index', { shortUrls });
-  });
 
-  app.post('/shortUrls', async (req, res) => {
-    const repo = getRepository();
-    const { fullUrl } = req.body;
-  
-    const shortUrl = repo.createEntity({
-      full: fullUrl,
-      short: shortid.generate(),
-      clicks: 0
+    app.use('/', routes);
+
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Servidor rodando na porta ${PORT}`);
     });
-  
-    console.log('Salvando dados no Redis:', shortUrl);
-    await repo.save(shortUrl);  // Salva a instância da entidade
-    res.redirect('/');
-  });
-  app.get('/:short', async (req, res) => {
-    const repo = getRepository();
-    const results = await repo.search()
-      .where('short').equals(req.params.short)
-      .return.all();
-    const url = results[0];
-    url.clicks++;
-    await repo.save(url);
-    res.redirect(url.full);
 
-  });
+  } catch (error) {
+    console.error('Erro ao inicializar o repositório Redis:', error);
+  }
+}
 
-  app.listen(process.env.PORT || 5000);
-});
+startServer();
