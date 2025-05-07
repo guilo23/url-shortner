@@ -28,3 +28,14 @@ exports.redirectUrl = async (req, res) => {
     await repo.save(url);
     res.redirect(url.full);
 };
+exports.deleteUrl = async (req,res) => {
+    const repo = getRepository();
+    const results = await repo.search()
+        .where('short').equals(req.params.short)
+        .return.all();
+    const url = results[0];
+    await repo.remove(url.entityId);
+
+    res.redirect('/');
+    
+};

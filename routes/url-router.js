@@ -8,4 +8,6 @@ router.post('/shortUrls', urlController.shortenUrl);
 
 router.get('/:short', urlController.redirectUrl);
 
+router.delete('/delete/:short', urlController.deleteUrl);
+
 module.exports = router;
